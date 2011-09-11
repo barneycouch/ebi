@@ -1,0 +1,56 @@
+library(affy)
+library(pvclust)
+library(vsn)
+
+pd <- read.AnnotatedDataFrame(filename="pdata.txt")
+filenames <- rownames(pData(pd))
+affyData <- ReadAffy(filenames=filenames, phenoData=pd, sampleNames=pd$name)
+
+pdf("plot1.pdf",paper="a4r")
+
+boxplot(affyData, col=rainbow(6))
+
+hist(affyData, col=rainbow(6))
+
+degRNA <- AffyRNAdeg(affyData)
+plotAffyRNAdeg(degRNA, cols=rainbow(6))
+
+heatmap(cor(exprs(affyData)), symm=T)
+
+corClust <- pvclust(exprs(affyData), nboot=1, method.dist="correlation")
+plot(corClust)
+
+pca <- princomp(exprs(affyData))
+plot(pca$loadings, main="Principal Component Analysis", col=rainbow(6),  pch=19, cex=2)
+text(pca$loadings, colnames(exprs(affyData)), pos=3, cex=0.8)
+
+eset <- rma(affyData)
+normalize.AffyBatch.methods()
+
+par(mfrow=c(1,2))    # "Multi-figure by row" with 1 row and 2 columns
+
+boxplot(affyData,col=rainbow(6))
+
+boxplot(data.frame(exprs(eset)), col=rainbow(6))
+
+par(mfrow=c(1,1))
+
+par(mfrow=c(1,2))    # "Multi-figure by row" with 1 row and 2 columns
+
+corClust <- pvclust(exprs(affyData), nboot=1, method.dist="correlation")
+plot(corClust)
+
+corClustAfter <- pvclust(exprs(eset), nboot=1, method.dist="correlation")
+plot(corClustAfter)
+
+par(mfrow=c(1,1))
+
+meanSdPlot(exprs(eset))
+
+boxplot(data.frame(exprs(eset)), col="grey");
+
+write.exprs(eset, file="normalised_expression.txt")
+
+save(eset,file="eset.Rdata")
+
+dev.off()

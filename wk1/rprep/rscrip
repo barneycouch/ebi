@@ -1,0 +1,20 @@
+setwd("/Users/Barney/Dropbox/Other/Py/ebi/rprep")
+ensembl<-read.table("ensemblntcount2.txt",header=TRUE)
+zfish<-read.table("zebrantcount2.txt",header=TRUE)
+
+zfishclean<-zfish[abs(zfish -1300) >20]
+
+pdf("plot.pdf",paper="a4r")
+
+boxplot(c(as.data.frame(zfishclean),ensembl), main = "Length Distribution 1", names = c("Original", "Zv9"), col=c("blue","red"),ylab="3\' UTR Length")
+
+plot(density(ensembl$NucleotideLength,bw=25), xlim = c(0, 4000), col="blue",main="Length Distribution 2", ylab="Frequency",xlab="3\' UTR Length")
+lines(density(zfishclean,bw=25),col="red")
+legend("topright",c("Zv9","Original"),fill=c("blue","red"),inset=0.01)
+
+plot(density(ensembl$NucleotideLength,bw=25), xlim = c(15, 2500), log = "x", col="blue",main="Length Distribution 3", ylab="Frequency",xlab="3\' UTR Length (log)")
+lines(density(zfishclean,bw=25),col="red")
+legend("topright",c("Zv9","Original"),fill=c("blue","red"),inset=0.01)
+
+
+dev.off()

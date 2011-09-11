@@ -1,0 +1,93 @@
+library(affy)
+library(pvclust)
+library(vsn)
+
+pd <- read.AnnotatedDataFrame(filename="pdata.txt")
+filenames <- rownames(pData(pd))
+affyData <- ReadAffy(filenames=filenames, phenoData=pd, sampleNames=pd$name)
+
+pdf("plot1.pdf",paper="a4r")
+
+boxplot(affyData, col=rainbow(6))
+
+hist(affyData, col=rainbow(6))
+
+degRNA <- AffyRNAdeg(affyData)
+plotAffyRNAdeg(degRNA, cols=rainbow(6))
+
+heatmap(cor(exprs(affyData)), symm=T)
+
+corClust <- pvclust(exprs(affyData), nboot=1, method.dist="correlation")
+plot(corClust)
+
+pca <- princomp(exprs(affyData))
+plot(pca$loadings, main="Principal Component Analysis", col=rainbow(6),  pch=19, cex=2)
+text(pca$loadings, colnames(exprs(affyData)), pos=3, cex=0.8)
+
+eset <- rma(affyData)
+normalize.AffyBatch.methods()
+
+par(mfrow=c(1,2))    # "Multi-figure by row" with 1 row and 2 columns
+
+boxplot(affyData,col=rainbow(6))
+
+boxplot(data.frame(exprs(eset)), col=rainbow(6))
+
+par(mfrow=c(1,1))
+
+par(mfrow=c(1,2))    # "Multi-figure by row" with 1 row and 2 columns
+
+corClust <- pvclust(exprs(affyData), nboot=1, method.dist="correlation")
+plot(corClust)
+
+corClustAfter <- pvclust(exprs(eset), nboot=1, method.dist="correlation")
+plot(corClustAfter)
+
+par(mfrow=c(1,1))
+
+meanSdPlot(exprs(eset))
+
+boxplot(data.frame(exprs(eset)), col="grey");
+
+#write.exprs(eset, file="normalised_expression.txt")
+#save(eset,file="eset.Rdata")
+
+dev.off()
+
+pdf("plot2.pdf",paper="a4r")
+
+types<-pData(pd)$genotype
+
+#types <- factor(c("KO","KO","KO","WT","WT","WT"))
+#design <- model.matrix(~ 0+types)
+#colnames(design) <- levels(types)
+#contrast.matrix <- makeContrasts(KO-WT, levels=design)
+
+design <- model.matrix(~ 0+types)
+contrast.matrix<-makeContrasts(typesMZD_i-typesMZD,levels=design)
+
+fit <- lmFit(exprs,design)
+fit2 <- contrasts.fit(fit,contrast.matrix)
+fit2 <- eBayes(fit2)
+
+library(zebrafish.db)
+zebrafish()
+
+probes <- fit2$genes$ID
+
+symbols <- mget(probes,zebrafishSYMBOL)
+entrezids <- mget(probes,zebrafishENTREZID)
+descriptions <- mget(probes,zebrafishGENENAME)
+
+fit2$genes$Symbol <- unlist(symbols)
+fit2$genes$EntrezID <- unlist(entrezids)
+fit2$genes$Description <- unlist(descriptions)
+
+topTable(fit2, number=20, sort.by="p")
+volcanoplot(fit2, highlight=20)
+
+genelist<- topTable(fit2,number=100000)
+
+write.table(genelist,file="genelist.txt", row.names=FALSE, sep="\t")
+
+dev.off()
